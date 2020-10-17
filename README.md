@@ -1,8 +1,9 @@
 * This implementation is based on [juntang-zhuang implementation](https://github.com/juntang-zhuang/LadderNet) and [orobix implementation](https://github.com/orobix/retina-unet). The main differences are the use of different datasets however, this is still under progress and not all the files have been updated as of this date.
 
 # Requirement
-* Python3.8
-* PyTorch 0.4
+* Python3.7
+* PyTorch 0.4x`
+* TensorFlow
 * configparser
 * h5py
 * Pillow
