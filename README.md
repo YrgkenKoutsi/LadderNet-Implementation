@@ -4,10 +4,9 @@
 * Python3.8
 * PyTorch 0.4
 * configparser
-## Dependencies
 * h5py
 * Pillow
-
+* cv2
 
 # How to run
 * run ```python prepare_datasets_DRIVE.py``` to generate hdf5 file of training data
