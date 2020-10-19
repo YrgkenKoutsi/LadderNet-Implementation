@@ -20,12 +20,15 @@ from sklearn.metrics import roc_curve
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_recall_curve
-from sklearn.metrics import jaccard_similarity_score
+# from sklearn.metrics import jaccard_similarity_score   <--- depricated
+from sklearn.metrics import jaccard_score 
 from sklearn.metrics import f1_score
 import sys
 sys.path.insert(0, '../')
+
 # help_functions.py
 from lib.help_functions import *
+
 # extract_patches.py
 from lib.extract_patches import recompone
 from lib.extract_patches import recompone_overlap
@@ -58,23 +61,30 @@ DRIVE_test_imgs_original = path_data + config.get('data paths', 'test_imgs_origi
 test_imgs_orig = load_hdf5(DRIVE_test_imgs_original)
 full_img_height = test_imgs_orig.shape[2]
 full_img_width = test_imgs_orig.shape[3]
+
 #the border masks provided by the DRIVE
 DRIVE_test_border_masks = path_data + config.get('data paths', 'test_border_masks')
 test_border_masks = load_hdf5(DRIVE_test_border_masks)
+
 # dimension of the patches
 patch_height = int(config.get('data attributes', 'patch_height'))
 patch_width = int(config.get('data attributes', 'patch_width'))
+
 #the stride in case output with average
 stride_height = int(config.get('testing settings', 'stride_height'))
 stride_width = int(config.get('testing settings', 'stride_width'))
 assert (stride_height < patch_height and stride_width < patch_width)
+
 #model name
 name_experiment = config.get('experiment name', 'name')
 path_experiment = '../' +name_experiment +'/'
+
 #N full images to be predicted
 Imgs_to_test = int(config.get('testing settings', 'full_images_to_test'))
+
 #Grouping of the predicted images
 N_visual = int(config.get('testing settings', 'N_group_visual'))
+
 #====== average mode ===========
 average_mode = config.getboolean('testing settings', 'average_mode')
 
@@ -156,11 +166,12 @@ class TrainDataset(Dataset):
     def __getitem__(self, idx):
         return torch.from_numpy(self.imgs[idx,...]).float()
 
-batch_size = 1024
+# batch size was batch_size = 1024
+batch_size = 200
 
 test_set = TrainDataset(patches_imgs_test)
 test_loader = DataLoader(test_set, batch_size=batch_size,
-                          shuffle=False, num_workers=4)
+                          shuffle=False, num_workers=0) # num workers where 4 but i set them to 0
 
 preds = []
 for batch_idx, inputs in enumerate((test_loader)):
@@ -176,6 +187,7 @@ for batch_idx, inputs in enumerate((test_loader)):
 
 predictions = np.concatenate(preds,axis=0)
 print("Predictions finished")
+
 #===== Convert the prediction arrays in corresponding images
 pred_patches = pred_to_imgs(predictions, patch_height, patch_width, "original")
 
@@ -192,8 +204,10 @@ else:
     pred_imgs = recompone(pred_patches,13,12)       # predictions
     orig_imgs = recompone(patches_imgs_test,13,12)  # originals
     gtruth_masks = recompone(patches_masks_test,13,12)  #masks
+
 # apply the DRIVE masks on the repdictions #set everything outside the FOV to zero!!
 kill_border(pred_imgs, test_border_masks)  #DRIVE MASK  #only for visualization
+
 ## back to original dimensions
 orig_imgs = orig_imgs[:,:,0:full_img_height,0:full_img_width]
 pred_imgs = pred_imgs[:,:,0:full_img_height,0:full_img_width]
@@ -204,6 +218,7 @@ print("Gtruth imgs shape: " +str(gtruth_masks.shape))
 visualize(group_images(orig_imgs,N_visual),path_experiment+"all_originals")#.show()
 visualize(group_images(pred_imgs,N_visual),path_experiment+"all_predictions")#.show()
 visualize(group_images(gtruth_masks,N_visual),path_experiment+"all_groundTruths")#.show()
+
 #visualize results comparing mask and prediction:
 assert (orig_imgs.shape[0]==pred_imgs.shape[0] and orig_imgs.shape[0]==gtruth_masks.shape[0])
 N_predicted = orig_imgs.shape[0]
@@ -219,6 +234,7 @@ for i in range(int(N_predicted/group)):
 
 #====== Evaluate the results
 print("\n\n========  Evaluate the results =======================")
+
 #predictions only inside the FOV
 y_scores, y_true = pred_only_FOV(pred_imgs,gtruth_masks, test_border_masks)  #returns data only inside the FOV
 print("Calculating results only inside the FOV:")
@@ -228,6 +244,7 @@ print("y true pixels: " +str(y_true.shape[0]) +" (radius 270: 270*270*3.14==2289
 #Area under the ROC curve
 fpr, tpr, thresholds = roc_curve((y_true), y_scores)
 AUC_ROC = roc_auc_score(y_true, y_scores)
+
 # test_integral = np.trapz(tpr,fpr) #trapz is numpy integration
 print("\nArea under the ROC curve: " +str(AUC_ROC))
 roc_curve =plt.figure()
@@ -281,11 +298,13 @@ if float(confusion[1,1]+confusion[0,1])!=0:
 print("Precision: " +str(precision))
 
 #Jaccard similarity index
-jaccard_index = jaccard_similarity_score(y_true, y_pred, normalize=True)
+# jaccard_index = jaccard_similarity_score(y_true, y_pred, normalize=True)   <--- depricated
+jaccard_index = jaccard_score(y_true, y_pred, labels=None, pos_label=1, average='binary', sample_weight=None)
 print("\nJaccard similarity score: " +str(jaccard_index))
 
 #F1 score
-F1_score = f1_score(y_true, y_pred, labels=None, average='binary', sample_weight=None)
+# F1_score = f1_score(y_true, y_pred, labels=None, average='binary', sample_weight=None)
+F1_score = f1_score(y_true, y_pred, average='weighted', labels=np.unique(y_pred))
 print("\nF1 score (F-measure): " +str(F1_score))
 
 #Save the results

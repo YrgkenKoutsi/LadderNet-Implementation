@@ -54,7 +54,7 @@ if not os.path.exists('./logs'):
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
-total_epoch = 200
+total_epoch = 20 # this was 200 originaly
 
 val_portion = 0.1
 
@@ -113,11 +113,11 @@ train_ind = list(train_ind)
 
 train_set = TrainDataset(patches_imgs_train[train_ind,...],patches_masks_train[train_ind,...])
 train_loader = DataLoader(train_set, batch_size=batch_size,
-                          shuffle=True, num_workers=4)
+                          shuffle=True, num_workers=0)# Set num workers to 0 from 4 to avoid "freeze_support() error"
 
 val_set = TrainDataset(patches_imgs_train[val_ind,...],patches_masks_train[val_ind,...])
 val_loader = DataLoader(val_set, batch_size=batch_size,
-                          shuffle=True, num_workers=4)
+                          shuffle=True, num_workers=0)
 
 #========= Save a sample of what you're feeding to the neural network ==========
 N_sample = min(patches_imgs_train.shape[0],40)
