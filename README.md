@@ -2,7 +2,7 @@
 
 # Requirement
 * Python3.7
-* PyTorch 0.4x`
+* PyTorch 0.4
 * TensorFlow
 * configparser
 * h5py
